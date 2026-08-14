@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chunk Dashboard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="chunk-shell">
+      <header class="chunk-topbar">
+        <div>
+          <h1>Chunk Dashboard</h1>
+          <span id="caseInfo"></span>
+        </div>
+        <a class="back-link" href="/">返回标注页</a>
+      </header>
+
+      <section class="chunk-search">
+        <select id="versionSelect"></select>
+        <input id="chunkQuery" placeholder="搜索正文、标题、document_id 或 chunk_id" />
+        <button type="button" id="searchBtn">搜索</button>
+      </section>
+
+      <main class="chunk-layout">
+        <section class="chunk-results">
+          <div class="result-head">
+            <strong id="resultSummary">尚未搜索</strong>
+            <div>
+              <button type="button" id="prevPageBtn">上一页</button>
+              <button type="button" id="nextPageBtn">下一页</button>
+            </div>
+          </div>
+          <div id="chunkResults" class="result-list"></div>
+        </section>
+
+        <section class="chunk-detail">
+          <div class="detail-actions">
+            <button type="button" id="copyChunkBtn">复制 chunk_id</button>
+            <button type="button" id="addChunkBtn">加入当前标注</button>
+            <span id="chunkState"></span>
+          </div>
+          <h2 id="detailTitle">请选择一个 chunk</h2>
+          <p id="detailMeta"></p>
+          <section id="caseChunksPanel" class="case-chunks-panel">
+            <h2>当前标注已加入 Chunk</h2>
+            <div id="caseChunks"></div>
+          </section>
+          <h2>Embedding Text（实际送入模型）</h2>
+          <pre id="embeddingText"></pre>
+          <h2>Chunk 原文</h2>
+          <pre id="detailText"></pre>
+          <h2>同文档 Chunk</h2>
+          <div id="documentChunks" class="doc-list"></div>
+        </section>
+      </main>
+    </div>
+    <script src="/chunks.js"></script>
+  </body>
+</html>

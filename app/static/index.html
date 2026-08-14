@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FinTrace 标注</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <h1>FinTrace 标注</h1>
+          <span id="stats">加载中...</span>
+        </div>
+        <label class="annotator-box">
+          标注员 ID（必填）
+          <input id="annotator" placeholder="先输入姓名或编号，再开始保存" />
+          <small>用于记录修改人，不写入最终导出 jsonl。</small>
+        </label>
+        <div class="filters">
+          <label>
+            Session
+            <select id="sessionSelect"></select>
+          </label>
+          <label>
+            状态
+            <select id="statusSelect">
+              <option value="">全部</option>
+              <option value="pending">pending</option>
+              <option value="completed">completed</option>
+              <option value="review_required">review_required</option>
+            </select>
+          </label>
+          <label>
+            搜索
+            <input id="searchInput" placeholder="问题、case_id 或标注员 ID" />
+          </label>
+        </div>
+        <div class="case-list" id="caseList"></div>
+      </aside>
+
+      <main class="workspace">
+        <header class="toolbar">
+          <button type="button" id="prevBtn">上一条</button>
+          <button type="button" id="nextBtn">下一条</button>
+          <button type="button" id="nextPendingBtn">下一个未完成</button>
+          <button type="button" id="openChunksBtn">打开 Chunk Dashboard</button>
+          <button type="button" id="exportBtn">导出 JSONL</button>
+          <span id="saveState"></span>
+        </header>
+
+        <section class="content">
+          <section class="context">
+            <h2>此前上下文</h2>
+            <div id="previousTurns" class="turns empty">请选择一条问题</div>
+          </section>
+
+          <section class="current">
+            <div class="case-head">
+              <div>
+                <h2 id="caseId">未选择</h2>
+                <p id="caseMeta"></p>
+              </div>
+              <span id="thinkFlag"></span>
+            </div>
+            <div id="question" class="question">从左侧选择一个 case 开始标注。</div>
+
+            <form id="annotationForm" class="form">
+              <div class="grid">
+                <label>
+                  标注状态
+                  <select id="annotation_status">
+                    <option value="pending">pending</option>
+                    <option value="completed">completed</option>
+                    <option value="review_required">review_required</option>
+                  </select>
+                </label>
+                <label>
+                  Answerability
+                  <select id="answerability">
+                    <option value="">未填写</option>
+                    <option value="answerable">answerable</option>
+                    <option value="clarification_required">clarification_required</option>
+                    <option value="unanswerable">unanswerable</option>
+                  </select>
+                </label>
+                <div class="date-field">
+                  Required Date
+                  <div class="date-parts">
+                    <input id="date_year" inputmode="numeric" maxlength="4" placeholder="年" />
+                    <select id="date_month">
+                      <option value="">月</option>
+                      <option value="01">01</option>
+                      <option value="02">02</option>
+                      <option value="03">03</option>
+                      <option value="04">04</option>
+                      <option value="05">05</option>
+                      <option value="06">06</option>
+                      <option value="07">07</option>
+                      <option value="08">08</option>
+                      <option value="09">09</option>
+                      <option value="10">10</option>
+                      <option value="11">11</option>
+                      <option value="12">12</option>
+                    </select>
+                    <select id="date_day">
+                      <option value="">日</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="multi-field" data-list="required_entities">
+                <div class="field-title">
+                  <span>Required Entities</span>
+                  <button type="button" class="add-item" data-target="required_entities">+</button>
+                </div>
+                <div id="required_entities" class="multi-list"></div>
+              </div>
+
+              <fieldset>
+                <legend>Valid Tools</legend>
+                <label><input type="checkbox" name="tool" value="financial_risk_analysis" /> financial_risk_analysis</label>
+                <label><input type="checkbox" name="tool" value="ownership_penetration" /> ownership_penetration</label>
+                <label><input type="checkbox" name="tool" value="document_search" /> document_search</label>
+                <label><input type="checkbox" name="tool" value="event_timeline" /> event_timeline</label>
+              </fieldset>
+
+              <div class="multi-field" data-list="required_chunk_ids">
+                <div class="field-title">
+                  <span>Required Chunk IDs <small id="chunkVersionLabel"></small></span>
+                  <button type="button" class="add-item" data-target="required_chunk_ids">+</button>
+                </div>
+                <div id="required_chunk_ids" class="multi-list"></div>
+              </div>
+
+              <label>
+                备注
+                <textarea id="notes" placeholder="可选，仅保存在数据库中，不写入导出 jsonl"></textarea>
+              </label>
+
+              <div class="actions">
+                <button type="submit" id="saveBtn">保存</button>
+              </div>
+            </form>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

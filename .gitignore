@@ -1,0 +1,49 @@
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Local editor / OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime database and backups
+data/*.sqlite3
+data/*.sqlite3-*
+data/*.db
+data/*.db-*
+data/*.before-reset-*.sqlite3
+backups/
+
+# Exported annotation results
+evaluation/annotations/*.jsonl
+evaluation/annotations/*.json
+
+# Large local datasets
+chunks*.jsonl
+documents*.jsonl
+data/source/*.jsonl
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

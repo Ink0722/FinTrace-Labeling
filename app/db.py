@@ -14,11 +14,16 @@ EXPORT_PATH = ROOT / "evaluation" / "annotations" / "questions_annotated_v1.json
 
 ANNOTATION_STATUSES = {"pending", "completed", "review_required"}
 ANSWERABILITIES = {"answerable", "clarification_required", "unanswerable"}
-TOOLS = {
-    "financial_risk_analysis",
-    "ownership_penetration",
-    "document_search",
-    "event_timeline",
+TOOL_OPERATIONS = {
+    "document_search.search",
+    "financial_analysis.metric_query",
+    "financial_analysis.metric_compare",
+    "financial_analysis.risk_scan",
+    "ownership_analysis.holding_query",
+    "ownership_analysis.holding_compare",
+    "ownership_analysis.penetration",
+    "event_timeline.event_query",
+    "event_timeline.event_cluster",
 }
 
 
@@ -214,7 +219,7 @@ def validate_annotation(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("answerability is invalid")
 
     valid_tools = normalize_list(payload.get("valid_tools", []), "valid_tools")
-    invalid_tools = [tool for tool in valid_tools if tool not in TOOLS]
+    invalid_tools = [tool for tool in valid_tools if tool not in TOOL_OPERATIONS]
     if invalid_tools:
         raise ValueError(f"Unknown tool(s): {', '.join(invalid_tools)}")
 

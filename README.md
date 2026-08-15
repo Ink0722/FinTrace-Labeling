@@ -1,4 +1,9 @@
-# FinTrace 标注工具
+﻿# FinTrace 标注工具
+
+## 文档入口
+
+- [服务器部署与维护文档](docs/deployment_maintenance.md)
+- [非 Git 同步文件核对清单](docs/non_git_sync_checklist.md)
 
 这是一个非并发版网页标注工具。原始 `data/source/questions.jsonl` 保持只读，标注结果实时写入 `data/annotations.sqlite3`，并可导出到 `evaluation/annotations/questions_annotated_v1.jsonl`。
 
@@ -236,3 +241,5 @@ python -m app.reset_annotations
 ```
 
 建议标注者从主标注页点击“打开 Chunk Dashboard”进入 Dashboard，这样系统会自动把当前 `case_id` 和标注员 ID 带过去。
+
+

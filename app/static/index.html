@@ -119,12 +119,29 @@
                 <div id="required_entities" class="multi-list"></div>
               </div>
 
-              <fieldset>
-                <legend>Valid Tools</legend>
-                <label><input type="checkbox" name="tool" value="financial_risk_analysis" /> financial_risk_analysis</label>
-                <label><input type="checkbox" name="tool" value="ownership_penetration" /> ownership_penetration</label>
-                <label><input type="checkbox" name="tool" value="document_search" /> document_search</label>
-                <label><input type="checkbox" name="tool" value="event_timeline" /> event_timeline</label>
+              <fieldset class="tool-operations">
+                <legend>Valid Tool Operations</legend>
+                <div class="tool-group">
+                  <strong>document_search</strong>
+                  <label title="检索违规公告正文和研报摘要"><input type="checkbox" name="tool" value="document_search.search" /> search</label>
+                </div>
+                <div class="tool-group">
+                  <strong>financial_analysis</strong>
+                  <label title="查询财务指标值、单位、口径和来源"><input type="checkbox" name="tool" value="financial_analysis.metric_query" /> metric_query</label>
+                  <label title="跨期或跨公司比较财务指标"><input type="checkbox" name="tool" value="financial_analysis.metric_compare" /> metric_compare</label>
+                  <label title="执行财务风险规则扫描"><input type="checkbox" name="tool" value="financial_analysis.risk_scan" /> risk_scan</label>
+                </div>
+                <div class="tool-group">
+                  <strong>ownership_analysis</strong>
+                  <label title="查询主要股东快照、反向持股或交叉持股"><input type="checkbox" name="tool" value="ownership_analysis.holding_query" /> holding_query</label>
+                  <label title="比较股东进入、退出、增持和减持"><input type="checkbox" name="tool" value="ownership_analysis.holding_compare" /> holding_compare</label>
+                  <label title="查询有限持股路径和路径比例"><input type="checkbox" name="tool" value="ownership_analysis.penetration" /> penetration</label>
+                </div>
+                <div class="tool-group">
+                  <strong>event_timeline</strong>
+                  <label title="查询、筛选、去重并排序事件节点"><input type="checkbox" name="tool" value="event_timeline.event_query" /> event_query</label>
+                  <label title="按时间窗口和主体重合聚合事件簇"><input type="checkbox" name="tool" value="event_timeline.event_cluster" /> event_cluster</label>
+                </div>
               </fieldset>
 
               <div class="multi-field" data-list="required_chunk_ids">

@@ -3,6 +3,10 @@ const state = {
   cases: [],
   current: null,
   chunkVersion: null,
+  isRendering: false,
+  autoSaveTimer: null,
+  saveInFlight: false,
+  pendingSave: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -30,6 +34,7 @@ function addListInput(listId, value = "") {
     if (!text || !/[\r\n]/.test(text)) return;
     event.preventDefault();
     input.value = text.split(/\r?\n/)[0].trim();
+    scheduleAutoSave();
   });
   input.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
@@ -46,6 +51,7 @@ function addListInput(listId, value = "") {
   remove.addEventListener("click", () => {
     row.remove();
     ensureListInput(listId);
+    scheduleAutoSave();
   });
 
   row.append(input, remove);
@@ -202,13 +208,20 @@ function updateNavState() {
 }
 
 async function selectCase(caseId) {
+  if (state.current && state.current.case_id !== caseId && state.autoSaveTimer) {
+    clearTimeout(state.autoSaveTimer);
+    await persistCurrent({ auto: true });
+  } else {
+    clearTimeout(state.autoSaveTimer);
+  }
   const detail = await request(`/api/cases/${caseId}`);
   state.current = detail.case;
   renderCaseList();
+  state.isRendering = true;
   renderDetail(detail);
+  state.isRendering = false;
   updateNavState();
 }
-
 function renderDetail(detail) {
   const item = detail.case;
   $("caseId").textContent = item.case_id;
@@ -245,44 +258,76 @@ function renderDetail(detail) {
           .join("");
 }
 
-async function saveCurrent(event) {
-  event.preventDefault();
-  if (!state.current) return;
-
+function buildAnnotationPayload() {
   const validTools = [...document.querySelectorAll("input[name=tool]:checked")].map((input) => input.value);
+  const chunkIds = getListValues("required_chunk_ids");
+  return {
+    annotation_status: $("annotation_status").value,
+    answerability: $("answerability").value || null,
+    required_entities: getListValues("required_entities"),
+    required_date: buildRequiredDate(),
+    valid_tools: validTools,
+    required_chunk_ids: chunkIds,
+    chunk_version: chunkIds.length > 0 ? state.chunkVersion : null,
+    annotator: $("annotator").value.trim(),
+    notes: $("notes").value.trim() || null,
+  };
+}
+
+async function persistCurrent({ auto = false } = {}) {
+  if (!state.current) return;
+  const annotator = $("annotator").value.trim();
+  if (!annotator) {
+    $("saveState").textContent = auto ? "未自动保存：请先填写标注员 ID" : "保存失败：请先填写标注员 ID";
+    if (!auto) $("annotator").focus();
+    return;
+  }
+  if (state.saveInFlight) {
+    state.pendingSave = true;
+    return;
+  }
+
+  state.saveInFlight = true;
+  state.pendingSave = false;
+  localStorage.setItem("fintrace_annotator", annotator);
+  $("saveState").textContent = auto ? "自动保存中..." : "保存中...";
+
   try {
-    const annotator = $("annotator").value.trim();
-    if (!annotator) {
-      $("saveState").textContent = "保存失败：请先填写标注员 ID";
-      $("annotator").focus();
-      return;
-    }
-    localStorage.setItem("fintrace_annotator", annotator);
-    $("saveState").textContent = "保存中...";
-    const chunkIds = getListValues("required_chunk_ids");
-    const payload = {
-      annotation_status: $("annotation_status").value,
-      answerability: $("answerability").value || null,
-      required_entities: getListValues("required_entities"),
-      required_date: buildRequiredDate(),
-      valid_tools: validTools,
-      required_chunk_ids: chunkIds,
-      chunk_version: chunkIds.length > 0 ? state.chunkVersion : null,
-      annotator,
-      notes: $("notes").value.trim() || null,
-    };
-    state.current = await request(`/api/cases/${state.current.case_id}/annotation`, {
+    const caseId = state.current.case_id;
+    const payload = buildAnnotationPayload();
+    state.current = await request(`/api/cases/${caseId}/annotation`, {
       method: "PUT",
       body: JSON.stringify(payload),
     });
-    $("saveState").textContent = "已保存";
+    $("saveState").textContent = auto ? "已自动保存" : "已保存";
     await loadStats();
     await loadCases();
   } catch (err) {
-    $("saveState").textContent = err.message;
+    $("saveState").textContent = auto ? `自动保存失败：${err.message}` : err.message;
+  } finally {
+    state.saveInFlight = false;
+    if (state.pendingSave) {
+      state.pendingSave = false;
+      scheduleAutoSave();
+    }
   }
 }
 
+function scheduleAutoSave() {
+  if (state.isRendering || !state.current) return;
+  clearTimeout(state.autoSaveTimer);
+  $("saveState").textContent = "有修改，准备自动保存...";
+  state.autoSaveTimer = setTimeout(() => {
+    state.autoSaveTimer = null;
+    persistCurrent({ auto: true });
+  }, 700);
+}
+
+async function saveCurrent(event) {
+  event.preventDefault();
+  clearTimeout(state.autoSaveTimer);
+  await persistCurrent({ auto: false });
+}
 function move(offset) {
   if (state.cases.length === 0) {
     $("saveState").textContent = "当前筛选条件下没有题目";
@@ -341,7 +386,7 @@ function openChunksDashboard() {
   const target = state.current
     ? `/chunks.html?case_id=${encodeURIComponent(state.current.case_id)}&annotator=${encodeURIComponent(annotator)}`
     : "/chunks.html";
-  window.open(target, "_blank");
+  window.location.href = target;
 }
 
 function escapeHtml(text) {
@@ -354,6 +399,8 @@ function escapeHtml(text) {
 
 function bindEvents() {
   $("annotationForm").addEventListener("submit", saveCurrent);
+  $("annotationForm").addEventListener("input", scheduleAutoSave);
+  $("annotationForm").addEventListener("change", scheduleAutoSave);
   $("sessionSelect").addEventListener("change", loadCases);
   $("statusSelect").addEventListener("change", loadCases);
   $("searchInput").addEventListener("input", () => {
@@ -366,11 +413,20 @@ function bindEvents() {
   $("openChunksBtn").addEventListener("click", openChunksDashboard);
   $("exportBtn").addEventListener("click", exportJsonl);
   if ($("date_year") && $("date_month") && $("date_day")) {
-    $("date_year").addEventListener("input", () => refreshDayOptions($("date_day").value));
-    $("date_month").addEventListener("change", () => refreshDayOptions($("date_day").value));
+    $("date_year").addEventListener("input", () => {
+      refreshDayOptions($("date_day").value);
+      scheduleAutoSave();
+    });
+    $("date_month").addEventListener("change", () => {
+      refreshDayOptions($("date_day").value);
+      scheduleAutoSave();
+    });
   }
   document.querySelectorAll(".add-item").forEach((button) => {
-    button.addEventListener("click", () => addListInput(button.dataset.target));
+    button.addEventListener("click", () => {
+      addListInput(button.dataset.target);
+      scheduleAutoSave();
+    });
   });
 }
 

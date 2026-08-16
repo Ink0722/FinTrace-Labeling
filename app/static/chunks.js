@@ -285,8 +285,16 @@ function escapeAttr(text) {
   return escapeHtml(text).replaceAll("'", "&#39;");
 }
 
+function updateBackLink() {
+  const params = new URLSearchParams();
+  if (state.caseId) params.set("case_id", state.caseId);
+  if (state.annotator) params.set("annotator", state.annotator);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  document.querySelector(".back-link").href = `/${suffix}`;
+}
 async function init() {
   if (state.annotator) localStorage.setItem("fintrace_annotator", state.annotator);
+  updateBackLink();
   $("caseInfo").textContent = state.caseId
     ? `当前 case：${state.caseId} · by ${state.annotator || "未指定"}`
     : "未绑定 case，可复制 chunk_id";
@@ -296,7 +304,6 @@ async function init() {
   await loadCaseChunks();
   await search(true);
 }
-
 init().catch((err) => {
   $("chunkState").textContent = err.message;
 });

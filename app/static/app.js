@@ -7,6 +7,8 @@ const state = {
   autoSaveTimer: null,
   saveInFlight: false,
   pendingSave: false,
+  initialCaseId: new URLSearchParams(window.location.search).get("case_id"),
+  initialAnnotator: new URLSearchParams(window.location.search).get("annotator"),
 };
 
 const $ = (id) => document.getElementById(id);
@@ -432,15 +434,20 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
-  const savedAnnotator = localStorage.getItem("fintrace_annotator") || "";
+  const savedAnnotator = state.initialAnnotator || localStorage.getItem("fintrace_annotator") || "";
   $("annotator").value = savedAnnotator;
+  if (state.initialAnnotator) localStorage.setItem("fintrace_annotator", state.initialAnnotator);
   refreshDayOptions();
   setListValues("required_entities", []);
   setListValues("required_chunk_ids", []);
   await loadStats();
   await loadSessions();
   await loadCases();
-  if (state.cases[0]) await selectCase(state.cases[0].case_id);
+  if (state.initialCaseId) {
+    await selectCase(state.initialCaseId);
+  } else if (state.cases[0]) {
+    await selectCase(state.cases[0].case_id);
+  }
 }
 
 init().catch((err) => {

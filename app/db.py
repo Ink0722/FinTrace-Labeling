@@ -130,6 +130,12 @@ def init_db() -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(published_date)"
         )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_documents_company_date ON documents(company_id, published_date DESC)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chunks_version_doc ON chunks(version_id, document_id)"
+        )
         try:
             conn.execute(
                 """

@@ -47,15 +47,30 @@ async function search(resetPage = true) {
   const params = new URLSearchParams();
   if (state.versionId) params.set("version_id", state.versionId);
   if ($("chunkQuery").value.trim()) params.set("q", $("chunkQuery").value.trim());
+  if ($("companyIdFilter").value.trim()) params.set("company_id", $("companyIdFilter").value.trim());
   params.set("page", String(state.page));
   params.set("page_size", String(state.pageSize));
-  const data = await request(`/api/chunks?${params.toString()}`);
-  state.total = data.total;
-  state.versionId = data.version_id || state.versionId;
-  renderResults(data.items);
-  renderPaging();
-}
 
+  $("resultSummary").textContent = "搜索中...";
+  $("searchBtn").disabled = true;
+  $("searchBtn").textContent = "搜索中...";
+  setChunkState("搜索中...", "pending");
+  try {
+    const data = await request(`/api/chunks?${params.toString()}`);
+    state.total = data.total;
+    state.versionId = data.version_id || state.versionId;
+    renderResults(data.items);
+    renderPaging();
+    setChunkState("");
+  } catch (err) {
+    $("chunkResults").innerHTML = `<div class="empty">搜索失败：${escapeHtml(err.message)}</div>`;
+    $("resultSummary").textContent = "搜索失败";
+    setChunkState(`搜索失败：${err.message}`, "error");
+  } finally {
+    $("searchBtn").disabled = false;
+    $("searchBtn").textContent = "搜索";
+  }
+}
 function renderResults(items) {
   const terms = searchTerms();
   if (items.length === 0) {
@@ -83,12 +98,16 @@ function renderResults(items) {
 
 function renderPaging() {
   const pages = Math.max(1, Math.ceil(state.total / state.pageSize));
-  const mode = $("chunkQuery").value.trim() ? "搜索结果" : "当前版本全部 chunk";
+  const keywords = searchTerms();
+  const companyCode = companyCodeFilter();
+  const filters = [];
+  if (companyCode) filters.push(`证券代码=${companyCode}`);
+  if (keywords.length > 0) filters.push(`关键词=${keywords.join(" / ")}`);
+  const mode = filters.length > 0 ? `筛选结果（${filters.join(" · ")}）` : "当前版本全部 chunk";
   $("resultSummary").textContent = `${mode}：共 ${state.total} 条 · 第 ${state.page}/${pages} 页`;
   $("prevPageBtn").disabled = state.page <= 1;
   $("nextPageBtn").disabled = state.page >= pages;
 }
-
 async function selectChunk(versionId, chunkId) {
   const item = await request(`/api/chunks/${encodeURIComponent(versionId)}/${encodeURIComponent(chunkId)}`);
   const terms = searchTerms();
@@ -214,6 +233,9 @@ function bindEvents() {
   $("chunkQuery").addEventListener("keydown", (event) => {
     if (event.key === "Enter") search(true);
   });
+  $("companyIdFilter").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") search(true);
+  });
   $("prevPageBtn").addEventListener("click", () => {
     state.page -= 1;
     search(false);
@@ -237,10 +259,14 @@ function escapeHtml(text) {
 function searchTerms() {
   return $("chunkQuery").value
     .trim()
-    .split(/\s+/)
+    .split(/[\s,，;；]+/)
     .filter(Boolean);
 }
 
+function companyCodeFilter() {
+  const match = /^\s*(\d{6})/.exec($("companyIdFilter").value.trim());
+  return match ? match[1] : "";
+}
 function highlight(text, terms) {
   let html = escapeHtml(text || "");
   terms.forEach((term) => {

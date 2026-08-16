@@ -384,7 +384,7 @@ fieldset input {
 .chunk-search {
   background: #ffffff;
   border-bottom: 1px solid #d9e2ec;
-  padding: 14px 18px;
+  padding: 12px 14px;
 }
 
 .chunk-topbar {
@@ -406,10 +406,54 @@ fieldset input {
 
 .chunk-search {
   display: grid;
-  grid-template-columns: 240px 1fr 96px;
-  gap: 10px;
+  grid-template-columns: 220px minmax(0, 1fr) 180px 96px;
+  grid-template-areas: "version keyword code action";
+  align-items: end;
+  gap: 14px;
 }
 
+.version-filter {
+  grid-area: version;
+}
+
+.keyword-filter {
+  grid-area: keyword;
+}
+
+.code-filter {
+  grid-area: code;
+}
+
+.chunk-search > * {
+  min-width: 0;
+}
+
+.chunk-filter {
+  display: grid;
+  gap: 6px;
+}
+
+.chunk-filter span {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chunk-filter input,
+.chunk-filter select {
+  height: 38px;
+}
+
+.keyword-filter input {
+  min-width: 0;
+}
+
+#searchBtn {
+  grid-area: action;
+  min-width: 0;
+  height: 38px;
+  padding-inline: 14px;
+}
 .chunk-layout {
   display: grid;
   grid-template-columns: minmax(320px, 40%) 1fr;
@@ -552,11 +596,4 @@ mark {
   background: #fde68a;
   border-radius: 3px;
   padding: 0 2px;
-}
-
-@media (max-width: 980px) {
-  .chunk-search,
-  .chunk-layout {
-    grid-template-columns: 1fr;
-  }
 }

@@ -203,11 +203,15 @@ def activate_chunk_version(version_id: str) -> dict:
 @app.get("/api/chunks")
 def chunks(
     q: str | None = Query(default=None),
+    company_id: str | None = Query(default=None),
     version_id: str | None = Query(default=None),
     page: int = Query(default=1),
     page_size: int = Query(default=20),
 ) -> dict:
-    return search_chunks(q, version_id, page, page_size)
+    try:
+        return search_chunks(q, version_id, page, page_size, company_id=company_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/chunks/{version_id}/{chunk_id}")

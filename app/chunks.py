@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -229,37 +230,48 @@ def unique_nonempty(values: list[Any]) -> list[str]:
     return result
 
 
+def split_keywords(q: str | None) -> list[str]:
+    if not q:
+        return []
+    return [item for item in re.split(r"[\s,，;；]+", q.strip()) if item]
+
+
+def normalize_company_code(company_id: str | None) -> str | None:
+    if not company_id or not company_id.strip():
+        return None
+    match = re.match(r"^\s*(\d{6})", company_id)
+    if not match:
+        raise ValueError("company_id must start with 6 digits")
+    return match.group(1)
+
+
 def search_chunks(
     q: str | None,
     version_id: str | None,
     page: int,
     page_size: int,
+    company_id: str | None = None,
 ) -> dict[str, Any]:
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
     offset = (page - 1) * page_size
+    keywords = split_keywords(q)
+    company_code = normalize_company_code(company_id)
 
     with connect() as conn:
         resolved_version = version_id or active_version(conn)
         if not resolved_version:
-            return {"version_id": None, "items": [], "total": 0, "page": page, "page_size": page_size}
+            return {
+                "version_id": None,
+                "items": [],
+                "total": 0,
+                "page": page,
+                "page_size": page_size,
+                "keywords": keywords,
+                "company_code": company_code,
+            }
 
-        if q:
-            like = f"%{q}%"
-            rows, total = like_search(conn, resolved_version, like, page_size, offset)
-        else:
-            rows = conn.execute(
-                """
-                SELECT * FROM chunks
-                WHERE version_id = ?
-                ORDER BY document_id, chunk_index
-                LIMIT ? OFFSET ?
-                """,
-                (resolved_version, page_size, offset),
-            ).fetchall()
-            total = conn.execute(
-                "SELECT COUNT(*) AS n FROM chunks WHERE version_id = ?", (resolved_version,)
-            ).fetchone()["n"]
+        rows, total = like_search(conn, resolved_version, keywords, company_code, page_size, offset)
 
     return {
         "version_id": resolved_version,
@@ -267,12 +279,19 @@ def search_chunks(
         "total": total,
         "page": page,
         "page_size": page_size,
+        "keywords": keywords,
+        "company_code": company_code,
     }
 
 
-def like_search(conn: sqlite3.Connection, version_id: str, like: str, limit: int, offset: int):
-    clauses = """
-        c.version_id = ? AND (
+def build_chunk_search_where(keywords: list[str], company_code: str | None) -> tuple[str, list[Any]]:
+    clauses = ["c.version_id = ?"]
+    params: list[Any] = []
+    if company_code:
+        clauses.append("d.company_id LIKE ?")
+        params.append(f"{company_code}%")
+    keyword_clause = """
+        (
             c.chunk_id LIKE ?
             OR c.document_id LIKE ?
             OR c.section_title LIKE ?
@@ -285,25 +304,59 @@ def like_search(conn: sqlite3.Connection, version_id: str, like: str, limit: int
             OR d.tags LIKE ?
         )
     """
-    params = (version_id, like, like, like, like, like, like, like, like, like, like)
+    for keyword in keywords:
+        like = f"%{keyword}%"
+        clauses.append(keyword_clause)
+        params.extend([like] * 10)
+    return " AND ".join(clauses), params
+
+
+def like_search(
+    conn: sqlite3.Connection,
+    version_id: str,
+    keywords: list[str],
+    company_code: str | None,
+    limit: int,
+    offset: int,
+):
+    clauses, params = build_chunk_search_where(keywords, company_code)
+    all_params = [version_id, *params]
+    document_join = "JOIN" if company_code else "LEFT JOIN"
+    order_by = """
+        CASE WHEN d.published_date IS NULL OR d.published_date = '' THEN 1 ELSE 0 END,
+        d.published_date DESC,
+        c.document_id,
+        c.chunk_index
+    """
     rows = conn.execute(
         f"""
-        SELECT c.*, d.company_id, d.title, d.published_date, d.tags
+        SELECT
+            c.version_id,
+            c.chunk_id,
+            c.document_id,
+            c.chunk_index,
+            c.section_title,
+            c.char_start,
+            substr(c.text, 1, 261) AS text,
+            d.company_id,
+            d.title,
+            d.published_date,
+            d.tags
         FROM chunks c
-        LEFT JOIN documents d ON d.document_id = c.document_id
+        {document_join} documents d ON d.document_id = c.document_id
         WHERE {clauses}
-        ORDER BY c.document_id, c.chunk_index
+        ORDER BY {order_by}
         LIMIT ? OFFSET ?
         """,
-        (*params, limit, offset),
+        (*all_params, limit, offset),
     ).fetchall()
     total = conn.execute(
         f"""
         SELECT COUNT(*) AS n
         FROM chunks c
-        LEFT JOIN documents d ON d.document_id = c.document_id
+        {document_join} documents d ON d.document_id = c.document_id
         WHERE {clauses}
         """,
-        params,
+        all_params,
     ).fetchone()["n"]
     return rows, total

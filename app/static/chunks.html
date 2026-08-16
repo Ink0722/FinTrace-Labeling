@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Chunk Dashboard</title>
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/style.css?v=20260816-chunk-search" />
   </head>
   <body>
     <div class="chunk-shell">
@@ -17,11 +17,20 @@
       </header>
 
       <section class="chunk-search">
-        <select id="versionSelect"></select>
-        <input id="chunkQuery" placeholder="搜索正文、标题、document_id 或 chunk_id" />
+        <label class="chunk-filter version-filter">
+          <span>Chunk 版本</span>
+          <select id="versionSelect"></select>
+        </label>
+        <label class="chunk-filter keyword-filter">
+          <span>关键词</span>
+          <input id="chunkQuery" placeholder="空格、逗号或分号分隔；同一 chunk 必须全部命中" />
+        </label>
+        <label class="chunk-filter code-filter">
+          <span>证券代码</span>
+          <input id="companyIdFilter" inputmode="numeric" maxlength="9" placeholder="前 6 位，如 600519" />
+        </label>
         <button type="button" id="searchBtn">搜索</button>
       </section>
-
       <main class="chunk-layout">
         <section class="chunk-results">
           <div class="result-head">
@@ -55,6 +64,6 @@
         </section>
       </main>
     </div>
-    <script src="/chunks.js"></script>
+    <script src="/chunks.js?v=20260816-search-status"></script>
   </body>
 </html>
